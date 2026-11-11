@@ -217,7 +217,9 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 ## Upgrading from v0.16.x
 
-v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level. Python 3.9 is no longer tested; the floor is 3.10.
+v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. Python 3.9 is no longer tested; the floor is 3.10.
+
+v0.17.1 adds two rules to both profiles. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level.
 
 ## Upgrading from v0.15.x
 
