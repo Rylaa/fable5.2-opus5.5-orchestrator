@@ -12,9 +12,10 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # one runner-image problem must not hide the other results
       matrix:
         os: [ubuntu-latest, macos-latest]  # hooks shell out to ps/tmux; BSD vs procps differs
-        python-version: ["3.9", "3.13"]
+        python-version: ["3.10", "3.13"]  # 3.9 is EOL and gone from ubuntu-latest (26.04)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
