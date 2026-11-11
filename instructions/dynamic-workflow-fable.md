@@ -49,6 +49,11 @@ Effort per spawn: low=mechanical, medium=routine spec work,
 high=multi-file impl/debug/review, xhigh=hardest agentic work,
 architecture/migrations/security/escalations; unsure → round UP.
 opus never runs above xhigh — no max on opus.
+Set `model` on EVERY spawn, Explore included: an unset model
+inherits the chair's and spends its limit. Before moving work up a
+tier, give the worker a check it can run (test, build) or raise
+effort one level; past high, the next tier at lower effort beats
+more effort.
 sonnet carries the VOLUME: scan, fetch, mechanical edits, spec code,
 tests, briefs, standard review. opus takes predictably HARD work
 DIRECTLY — architecture, irreversible migrations, complex

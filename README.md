@@ -1,12 +1,12 @@
 # Fable Orchestrator
 
-[![CI](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml)
+[![CI](https://github.com/Rylaa/fable5.2-opus5.5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5.2-opus5.5-orchestrator/actions/workflows/ci.yml)
 
 **Run Claude Fable 5.2 all day — without watching the usage meter.**
 
 Fable 5.2 is the best chair a Claude Code session can have, and the most expensive seat in the house. Let it type every token itself and the session ends rate-limited, waiting out the reset window.
 
-This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `xhigh` for architecture and security — Neither Opus 5.5 nor a Fable escalation runs at `max`.
+This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `xhigh` for architecture and security — neither Opus 5.5 nor a Fable escalation runs at `max`.
 
 **No ledger, no interview, no mandatory verification phase.** Earlier versions gated the act of delegating with a requirements file and a clarification loop. Both are gone. What is left is one rule with teeth: delegation is the default, and a hook notices when the chair quietly does the work itself.
 
@@ -76,9 +76,11 @@ Three rules keep worker output from undoing the saving:
 
 **Two chairs.** Fable (5.2 today) is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
 
+To move the chair mid-session, run `/model opus` first, then `/compact`. Opus cannot read Fable 5.2's reasoning, and the prompt cache belongs to the model that wrote it, so the long history is dead weight on the new chair. The compact also re-fires SessionStart, so the Opus profile arrives in full. Compact on Fable first and the Fable profile is re-injected instead — and the Fable limit is usually spent by then anyway.
+
 ### 2 · The solo guard — the gate that watches the chair
 
-This is the part with teeth, and it is new in v0.16.0.
+This is the part with teeth, added in v0.16.0.
 
 Every earlier version gated **delegation**: spawn prompts over a length threshold, the third tracker task, the close with open ledger items. A chair that never delegated never met a gate at all — measured in the wild, five consecutive sessions received the profile in full and spawned zero workers while hand-editing dozens of files.
 
@@ -144,15 +146,17 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 ## Install
 
 ```
-/plugin marketplace add Rylaa/fable5-opus5.5-orchestrator
+/plugin marketplace add Rylaa/fable5.2-opus5.5-orchestrator
 /plugin install orchestrator@fable-orchestrator
 ```
 
 Restart Claude Code afterwards — **a plugin's hooks are registered when the CLI process starts**, so a session already running (including one you `/clear`) keeps the hook set it booted with and will not see the plugin.
 
-Run the chair at `/effort high`: on Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
+Run the chair at `/effort medium` and raise it to `high` for the hardest planning. On Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
 
-Requires `python3` on PATH; macOS and Linux only — the hooks shell out to `tmux` for teammate reaping, and Windows is not supported. No configuration needed.
+Optional safety net: set `CLAUDE_CODE_SUBAGENT_MODEL` to `sonnet` under `"env"`. A spawn with no `model` inherits the chair's model, so without it every forgotten `model` runs on Fable. The built-in Explore agent also runs on the session's model; the profile tells the chair to pass `model` to it too.
+
+Requires `python3` 3.10+ on PATH (CI runs 3.10 and 3.13); macOS and Linux only — the hooks shell out to `tmux` for teammate reaping, and Windows is not supported. No configuration needed.
 
 ### Manual install (without the plugin system)
 
@@ -213,7 +217,9 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 ## Upgrading from v0.16.x
 
-v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`.
+v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. Python 3.9 is no longer tested; the floor is 3.10.
+
+v0.17.1 adds two rules to both profiles. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level.
 
 ## Upgrading from v0.15.x
 
@@ -229,9 +235,9 @@ python3 -m pytest tests/ -q
 
 The hooks are plain stdin/stdout JSON filters, so the tests run them end-to-end as subprocesses: the solo gate's threshold, its once-per-session deny, the spawn exemption and the fork non-exemption, every counted edit tool, the naming gate's length threshold and its exemptions, teammate detection against a fake `ps`, the env overrides, malformed sidecars and garbage stdin, the per-prompt reminder and its skip, injection and the profile-switch delta, cache cleanup, and teammate reaping against a fake tmux.
 
-`tests/test_e2e_dry_run.py` is the dry run of a whole session: it runs each command from `hooks/hooks.json` through the shell, exactly as Claude Code would, in a sandbox — start on Fable 5.2, prompts, three solo edits, a spawn, a resume onto Opus, and the end-of-session cleanup.
+`tests/test_e2e_dry_run.py` is the dry run of a whole session: it runs each command from `hooks/hooks.json` through the shell, exactly as Claude Code would, in a sandbox — start on Fable 5.2, prompts, three solo edits, a spawn, a resume onto Opus, and the end-of-session cleanup. Run it alone with `python3 -m pytest tests/test_e2e_dry_run.py -q`.
 
-A second layer pins the *content*: the cores stay under budget, both keep requiring the playbook, the decisions that survived past rewrites are asserted line by line, and the retired gates are asserted **absent** — a core that still promises a ledger or a mandatory verifier is a worse lie than never having had one.
+A second layer pins the *content*: the cores stay under budget, both keep requiring the playbook, the decisions that survived past rewrites are asserted line by line, the two cores may differ only in their routing section, and the retired gates are asserted **absent** — a core that still promises a ledger or a mandatory verifier is a worse lie than never having had one.
 
 ## Honest limitations
 
