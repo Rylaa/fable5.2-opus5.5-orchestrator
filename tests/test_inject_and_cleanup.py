@@ -336,6 +336,54 @@ def test_null_payload_falls_back_to_settings_fable(tmp_path):
     assert "(FABLE profile)" in context_of(_inject(tmp_path, {"session_id": "s2"}))
 
 
+def _launched(tmp_path, argv, payload, settings=None):
+    """Inject with the nearest claude ancestor launched as `argv`."""
+    if settings:
+        _write_settings(tmp_path, settings)
+    env = fake_ps_env(tmp_path, "1 " + argv)
+    return context_of(run_hook(INJECT, payload, env_extra=env, tmpdir=tmp_path))
+
+
+def test_launch_flag_beats_settings(tmp_path):
+    # The live bug (Claude Code 2.1.322): SessionStart carries no model,
+    # so `claude --model fable` with "opus" in settings.json got the
+    # OPUS profile, which bans the fable tier the chair is sitting on.
+    assert "(FABLE profile)" in _launched(
+        tmp_path, "claude --model fable", {"session_id": "l1"}, "opus")
+    assert "(OPUS profile)" in _launched(
+        tmp_path, "claude --model=claude-opus-5-5", {"session_id": "l2"},
+        "claude-fable-5-2")
+
+
+def test_payload_still_beats_the_launch_flag(tmp_path):
+    assert "(OPUS profile)" in _launched(
+        tmp_path, "claude --model fable",
+        {"session_id": "l3", "model": "claude-opus-5-5"})
+
+
+def test_no_launch_flag_falls_through_to_settings(tmp_path):
+    assert "(OPUS profile)" in _launched(
+        tmp_path, "claude -p", {"session_id": "l4"}, "opus")
+
+
+def test_relaunch_on_another_model_is_an_authoritative_switch(tmp_path):
+    # The documented chair move: exit, then `claude --continue --model
+    # opus`. The new argv describes THIS session, so a resume onto it
+    # gets the delta, not a second core.
+    assert "(FABLE profile)" in _launched(
+        tmp_path, "claude --model fable", {"session_id": "l5"}, "opus")
+    text = _launched(tmp_path, "claude --continue --model opus",
+                     {"session_id": "l5", "source": "resume"})
+    assert "Profile switch → OPUS chair" in text
+    assert "(OPUS profile)" not in text
+
+
+def test_teammate_with_a_model_flag_is_still_skipped(tmp_path):
+    env = fake_ps_env(tmp_path, "1 claude --agent-id w@s --model sonnet")
+    assert run_hook(INJECT, {"session_id": "l6"}, env_extra=env,
+                    tmpdir=tmp_path) is None
+
+
 def test_payload_model_beats_settings(tmp_path):
     # Payload is authoritative for THIS session start; settings is only a
     # fallback for when the payload omits the model.

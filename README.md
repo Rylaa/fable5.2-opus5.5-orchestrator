@@ -76,7 +76,9 @@ Three rules keep worker output from undoing the saving:
 
 **Two chairs.** Fable (5.2 today) is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
 
-To move the chair mid-session, run `/model opus` first, then `/compact`. Opus cannot read Fable 5.2's reasoning, and the prompt cache belongs to the model that wrote it, so the long history is dead weight on the new chair. The compact also re-fires SessionStart, so the Opus profile arrives in full. Compact on Fable first and the Fable profile is re-injected instead — and the Fable limit is usually spent by then anyway.
+To move the chair, exit and relaunch: `claude --continue --model opus` (or `--resume <id>`). Do not use `/model` for this: it changes the model for that session only, and no hook can see it, so the session keeps the Fable profile. The relaunch fires SessionStart with `--model opus` on the command line, and the hook reads it from there. Opus cannot read Fable 5.2's reasoning, and the prompt cache belongs to the model that wrote it, so run `/compact` on the new chair if the history is long.
+
+How the hook picks the profile, first match wins: `FABLE_ORCH_PROFILE`, the `model` in the SessionStart payload (current Claude Code sends none), the `--model` flag the session was launched with, the `model` in `settings.json`, then the last model seen in this session.
 
 ### 2 · The solo guard — the gate that watches the chair
 
@@ -215,6 +217,10 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 **The session marker.** The injector writes a per-session temp file whose `started` timestamp survives resume/clear/compact. `SessionEnd` removes the session's temp files and sweeps anything older than 96 hours.
 
+## Upgrading from v0.17.0 / v0.17.1
+
+v0.17.2 fixes the chair detection. Claude Code no longer sends the model in the SessionStart payload, so a session launched with `claude --model fable` while `settings.json` said `opus` got the Opus profile, which bans the fable tier. The hook now reads the `--model` flag of the claude process. The v0.17.1 advice to switch chairs with `/model` + `/compact` was wrong; relaunch with `--model` instead.
+
 ## Upgrading from v0.16.x
 
 v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. Python 3.9 is no longer tested; the floor is 3.10.
@@ -246,6 +252,7 @@ A second layer pins the *content*: the cores stay under budget, both keep requir
 - **It fires once.** By design — but a determined chair can absorb the nudge and carry on solo, and nothing stops it.
 - **Hooks check shape, not fidelity.** A worker spawned to satisfy the gate, then ignored, passes.
 - **Two chairs only.** Fable (primary) and Opus (fallback). Any other model gets the Fable profile.
+- **`/model` is invisible to the hooks.** A chair switched with `/model` keeps the profile it started with. Relaunch with `--model` instead, or pin `FABLE_ORCH_PROFILE`.
 - **Enforcement is only as strong as the host's hook pipeline.** On one experimental spawn backend an async `Agent` launch proceeded despite a deny. Verify once on your setup.
 - **Pane idleness is a heuristic.** A teammate blocked for hours in one quiet external wait can be reaped mid-wait. Raise `FABLE_ORCH_TEAMMATE_IDLE_H` or disable it for such workloads.
 - **A plugin's hooks load at CLI start.** Install it and keep working in the same window and nothing happens — not a bug, but it looks exactly like one.

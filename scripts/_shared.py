@@ -122,26 +122,26 @@ def _budget(deadline, cap=5.0):
     return max(0.2, min(cap, deadline - time.monotonic()))
 
 
-def is_teammate_session(max_hops=12):
-    """True when this hook is running inside a named teammate.
+_ANCESTOR = []  # one walk per hook process: [command or None]
 
-    Teammates are launched with `--agent-id`. Every rule these hooks
-    carry belongs to the CHAIR: a worker that is told "delegate this"
-    would spawn workers of its own, inverting the discipline, and a
-    worker held at its close loses the report it was about to deliver.
-    Walks up to the first claude ancestor and answers from its argv.
 
-    HARD-BUDGETED, because this runs BEFORE the caller prints its
-    decision: an unbounded walk of 12 hops at a 5s subprocess timeout
-    would be 60s against a 10s hook timeout, and the hook would be
-    killed with no decision emitted at all. On budget exhaustion the
-    answer is False — "assume chair", so the guard still runs.
+def claude_ancestor_command(max_hops=12):
+    """argv of the nearest claude ancestor, or None if none was found.
+
+    HARD-BUDGETED, because callers run BEFORE they print a decision: an
+    unbounded walk of 12 hops at a 5s subprocess timeout would be 60s
+    against a 10s hook timeout, and the hook would be killed with no
+    decision emitted at all. Cached: the injector asks twice (teammate?
+    launch model?) and must not pay the walk twice.
     """
+    if _ANCESTOR:
+        return _ANCESTOR[0]
+    found = None
     deadline = time.monotonic() + TEAMMATE_DETECT_BUDGET
     pid = os.getpid()
     for _ in range(max_hops):
         if time.monotonic() > deadline:
-            return False
+            break
         try:
             out = subprocess.run(
                 ["ps", "-o", "ppid=,command=", "-p", str(pid)],
@@ -150,13 +150,46 @@ def is_teammate_session(max_hops=12):
             bits = (out.splitlines()[0] if out else "").split(None, 1)
             ppid = int(bits[0])
         except Exception:
-            return False
+            break
         command = bits[1] if len(bits) > 1 else ""
-        for tok in command.split():
-            base = os.path.basename(tok.strip("\"'"))
-            if base == "claude" or "claude-code" in tok or base.startswith("2."):
-                return "--agent-id" in command
+        if any(os.path.basename(tok.strip("\"'")) == "claude"
+               or "claude-code" in tok
+               or os.path.basename(tok.strip("\"'")).startswith("2.")
+               for tok in command.split()):
+            found = command
+            break
         if ppid <= 1:
-            return False
+            break
         pid = ppid
-    return False
+    _ANCESTOR.append(found)
+    return found
+
+
+def is_teammate_session():
+    """True when this hook is running inside a named teammate.
+
+    Teammates are launched with `--agent-id`. Every rule these hooks
+    carry belongs to the CHAIR: a worker that is told "delegate this"
+    would spawn workers of its own, inverting the discipline, and a
+    worker held at its close loses the report it was about to deliver.
+    On a failed or exhausted walk the answer is False — "assume chair",
+    so the guard still runs.
+    """
+    return "--agent-id" in (claude_ancestor_command() or "")
+
+
+def launch_model():
+    """The `--model` the claude process was launched with, or None.
+
+    The SessionStart payload carries no model (checked on 2.1.322), so
+    this is the only per-session signal: `claude --model fable` and
+    `claude --resume ID --model opus` both land here. `/model` inside a
+    session changes neither argv nor settings — no hook can see it.
+    """
+    toks = (claude_ancestor_command() or "").split()
+    for i, tok in enumerate(toks):
+        if tok == "--model" and i + 1 < len(toks):
+            return toks[i + 1]
+        if tok.startswith("--model="):
+            return tok.split("=", 1)[1] or None
+    return None
