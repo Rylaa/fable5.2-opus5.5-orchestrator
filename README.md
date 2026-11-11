@@ -76,6 +76,8 @@ Three rules keep worker output from undoing the saving:
 
 **Two chairs.** Fable (5.2 today) is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
 
+To move the chair mid-session, run `/model opus` first, then `/compact`. Opus cannot read Fable 5.2's reasoning, and the prompt cache belongs to the model that wrote it, so the long history is dead weight on the new chair. The compact also re-fires SessionStart, so the Opus profile arrives in full. Compact on Fable first and the Fable profile is re-injected instead — and the Fable limit is usually spent by then anyway.
+
 ### 2 · The solo guard — the gate that watches the chair
 
 This is the part with teeth, added in v0.16.0.
@@ -150,7 +152,9 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 
 Restart Claude Code afterwards — **a plugin's hooks are registered when the CLI process starts**, so a session already running (including one you `/clear`) keeps the hook set it booted with and will not see the plugin.
 
-Run the chair at `/effort high`: on Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
+Run the chair at `/effort medium` and raise it to `high` for the hardest planning. On Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
+
+Optional safety net: set `CLAUDE_CODE_SUBAGENT_MODEL` to `sonnet` under `"env"`. A spawn with no `model` inherits the chair's model, so without it every forgotten `model` runs on Fable. The built-in Explore agent also runs on the session's model; the profile tells the chair to pass `model` to it too.
 
 Requires `python3` 3.10+ on PATH (CI runs 3.10 and 3.13); macOS and Linux only — the hooks shell out to `tmux` for teammate reaping, and Windows is not supported. No configuration needed.
 
@@ -213,7 +217,7 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 ## Upgrading from v0.16.x
 
-v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. Python 3.9 is no longer tested; the floor is 3.10.
+v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level. Python 3.9 is no longer tested; the floor is 3.10.
 
 ## Upgrading from v0.15.x
 
