@@ -114,15 +114,17 @@ def test_preserved_decisions_survive_the_diet():
         "opus: decline rerun tier undefined at the ceiling"
 
 
-def test_opus_effort_tops_out_at_xhigh():
-    # User decision (v0.16.2): Opus 5.5 never runs at max. Architecture,
-    # migrations, security and escalations — the old max row — run at
-    # xhigh; a profile that still maps them to max spends the limit on
-    # an effort level the user ruled out.
+def test_every_tier_tops_out_at_high():
+    # User decision (v0.17.2): no tier runs above high — no xhigh, no
+    # max. Architecture, migrations, security and escalations run at
+    # high; work that needs more moves up a tier. (v0.16.2 had capped
+    # only opus, at xhigh.)
     for name in CORES:
         text = _flat(_instr(name))
-        assert "opus never runs above xhigh" in text, f"{name}: opus xhigh cap dropped"
-        assert "max=architecture" not in text, f"{name}: max row came back"
+        assert "high is the CEILING for every tier" in text, f"{name}: high cap dropped"
+        assert "xhigh" not in text, f"{name}: xhigh came back"
+        assert "max=" not in text, f"{name}: a max row came back"
+    assert "xhigh" not in _flat(_playbook())
 
 
 def test_every_spawn_names_its_model():
@@ -132,17 +134,14 @@ def test_every_spawn_names_its_model():
     for name in CORES:
         text = _flat(_instr(name))
         assert "Set `model` on EVERY spawn, Explore included" in text, name
-        assert "past high, the next tier at lower effort" in text, name
+        assert "at high, the next step is the next tier" in text, name
 
 
-def test_fable_escalation_never_runs_at_max():
-    # Fable 5.2 (v0.17.0): most of the gain arrives by high and gains
-    # above it are uneven; max is for measuring the model's ceiling. A
-    # fable escalation at max spends the chair's own limit on tokens
-    # that rarely buy anything.
+def test_fable_escalation_runs_at_high():
+    # The fable tier is the escalation ceiling, and it obeys the same
+    # high cap as every other tier — it spends the chair's own limit.
     text = _flat(_instr("dynamic-workflow-fable.md"))
-    assert "fable is the escalation CEILING at high" in text
-    assert "never max" in text
+    assert "fable is the escalation CEILING, at high like every tier" in text
     assert "fable (max)" not in text, "fable max escalation came back"
 
 

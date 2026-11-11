@@ -6,7 +6,7 @@
 
 Fable 5.2 is the best chair a Claude Code session can have, and the most expensive seat in the house. Let it type every token itself and the session ends rate-limited, waiting out the reset window.
 
-This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `xhigh` for architecture and security — neither Opus 5.5 nor a Fable escalation runs at `max`.
+This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `high` for architecture and security — no tier ever runs above `high`.
 
 **No ledger, no interview, no mandatory verification phase.** Earlier versions gated the act of delegating with a requirements file and a clarification loop. Both are gone. What is left is one rule with teeth: delegation is the default, and a hook notices when the chair quietly does the work itself.
 
@@ -24,7 +24,7 @@ This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends
            ┌────────────────────────┬────┴───────────────────┬────────────────────────┐
            ▼                        ▼                        ▼                        ▼
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│SONNET 5.5 · low–med │  │SONNET 5.5 · med–high│  │SONNET 5.5 · med–high│  │OPUS 5.5 · high–xhigh│
+│SONNET 5.5 · low–med │  │SONNET 5.5 · med–high│  │SONNET 5.5 · med–high│  │   OPUS 5.5 · high   │
 │   mechanical bulk   │  │   implementation    │  │   routine judgment  │  │  hard work · direct │
 │   grep·fetch·scan   │  │   code · tests      │  │   briefs · review   │  │  architecture       │
 │   format · read     │  │   debug · refactor  │  │   filtering         │  │  migrations·security│
@@ -48,7 +48,7 @@ Your Fable limit pays for the thinking and almost nothing else:
 │ Source briefs, filtering, code review   │ Sonnet 5.5        │ nothing             │
 │ Bulk gathering (fetch, grep, scan)      │ Sonnet 5.5 (low)  │ nothing             │
 │ Hard slices: architecture, migrations   │ Opus 5.5 (direct) │ nothing             │
-│ Security / adversarial review           │ Opus 5.5 (xhigh)  │ nothing             │
+│ Security / adversarial review           │ Opus 5.5 (high)   │ nothing             │
 │ Escalations (sonnet "uncertain")        │ Opus → Fable      │ mostly nothing      │
 └─────────────────────────────────────────┴───────────────────┴─────────────────────┘
 ```
@@ -56,9 +56,9 @@ Your Fable limit pays for the thinking and almost nothing else:
 ## Why this trio
 
 - **Fable tokens are the heaviest draw on your limit.** Every token of bulk work kept off the chair extends how long Fable stays in it.
-- **Sonnet 5.5 carries the volume.** Near-Opus quality on coding and agentic work, with the full effort ladder (`low` → `max`) — and the chair dials that ladder per task.
+- **Sonnet 5.5 carries the volume.** Near-Opus quality on coding and agentic work, on an effort ladder from `low` to `high` — and the chair dials that ladder per task.
 - **Opus 5.5 takes the hard slices directly.** Architecture tradeoffs, irreversible migrations, complex multi-system implementation and all security review are assigned straight to Opus, with no failed Sonnet pass required.
-- **Escalation is one-way.** Fable 5.2 escalations run at `high` — its gains above `high` are uneven, so `xhigh` only for the hardest long-running work and never `max`. Sonnet returns "uncertain" and it goes to Opus, never back to the chair. If a tier declines a task it is re-run **unchanged** on another tier, never reworded to slip past a classifier. If that tier declines too, the chair stops and tells you.
+- **Escalation is one-way.** Every tier, Fable escalations included, tops out at `high`: no `xhigh`, no `max`. When `high` is not enough, the work moves up a tier instead. Sonnet returns "uncertain" and it goes to Opus, never back to the chair. If a tier declines a task it is re-run **unchanged** on another tier, never reworded to slip past a classifier. If that tier declines too, the chair stops and tells you.
 
 ## What the plugin does
 
@@ -154,7 +154,7 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 
 Restart Claude Code afterwards — **a plugin's hooks are registered when the CLI process starts**, so a session already running (including one you `/clear`) keeps the hook set it booted with and will not see the plugin.
 
-Run the chair at `/effort medium` and raise it to `high` for the hardest planning. On Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
+Run the chair at `/effort medium` and raise it to `high` for the hardest planning — never above, like the workers. On Fable 5.2 most of the gain arrives by `high`.
 
 Optional safety net: set `CLAUDE_CODE_SUBAGENT_MODEL` to `sonnet` under `"env"`. A spawn with no `model` inherits the chair's model, so without it every forgotten `model` runs on Fable. The built-in Explore agent also runs on the session's model; the profile tells the chair to pass `model` to it too.
 
@@ -221,9 +221,11 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 v0.17.2 fixes the chair detection. Claude Code no longer sends the model in the SessionStart payload, so a session launched with `claude --model fable` while `settings.json` said `opus` got the Opus profile, which bans the fable tier. The hook now reads the `--model` flag of the claude process. The v0.17.1 advice to switch chairs with `/model` + `/compact` was wrong; relaunch with `--model` instead.
 
+v0.17.2 also caps effort at `high` for every tier. `xhigh` is gone: architecture, migrations, security and escalations run at `high`, and work that needs more moves up a tier.
+
 ## Upgrading from v0.16.x
 
-v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`. Python 3.9 is no longer tested; the floor is 3.10.
+v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation no longer runs at `max` (v0.17.2 then capped every tier at `high`). Python 3.9 is no longer tested; the floor is 3.10.
 
 v0.17.1 adds two rules to both profiles. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level.
 
