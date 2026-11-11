@@ -1,6 +1,6 @@
 # Fable Orchestrator
 
-[![CI](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml)
+[![CI](https://github.com/Rylaa/fable5.2-opus5.5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5.2-opus5.5-orchestrator/actions/workflows/ci.yml)
 
 **Run Claude Fable 5.2 all day — without watching the usage meter.**
 
@@ -146,7 +146,7 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 ## Install
 
 ```
-/plugin marketplace add Rylaa/fable5-opus5.5-orchestrator
+/plugin marketplace add Rylaa/fable5.2-opus5.5-orchestrator
 /plugin install orchestrator@fable-orchestrator
 ```
 
