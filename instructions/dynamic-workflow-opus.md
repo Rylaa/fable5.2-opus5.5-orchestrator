@@ -1,6 +1,6 @@
 # Dynamic Workflow — Orchestration & Model Routing (OPUS profile)
 
-> Opus-in-chair (Fable-limit fallback): the Fable 5 limit is spent,
+> Opus-in-chair (Fable-limit fallback): the Fable limit is spent,
 > Opus holds the chair until it returns. Do NOT spawn fable agents —
 > they burn the exhausted limit. The USAGE LIMIT still wins.
 

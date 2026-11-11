@@ -125,6 +125,45 @@ def test_opus_effort_tops_out_at_xhigh():
         assert "max=architecture" not in text, f"{name}: max row came back"
 
 
+def test_fable_escalation_never_runs_at_max():
+    # Fable 5.2 (v0.17.0): most of the gain arrives by high and gains
+    # above it are uneven; max is for measuring the model's ceiling. A
+    # fable escalation at max spends the chair's own limit on tokens
+    # that rarely buy anything.
+    text = _flat(_instr("dynamic-workflow-fable.md"))
+    assert "fable is the escalation CEILING at high" in text
+    assert "never max" in text
+    assert "fable (max)" not in text, "fable max escalation came back"
+
+
+def _sections(text):
+    """{heading: body} for every `## ` section of a core profile."""
+    out = {}
+    for chunk in text.split("\n## ")[1:]:
+        head, _, body = chunk.partition("\n")
+        out[head.strip()] = _flat(body)
+    return out
+
+
+def test_cores_share_every_section_but_routing():
+    # The two cores are two files on purpose (each is injected whole,
+    # with no template step that can fail at session start), but only
+    # the header and the routing section may differ: the fable tier
+    # rests under the opus chair, and nothing else does. A rule edited
+    # in one core and forgotten in the other gives the chair different
+    # discipline depending on which tier holds the seat.
+    fable = _sections(_instr("dynamic-workflow-fable.md"))
+    opus = _sections(_instr("dynamic-workflow-opus.md"))
+    assert set(fable) == set(opus)
+    assert "Routing & effort" in fable
+    for head in fable:
+        if head != "Routing & effort":
+            assert fable[head] == opus[head], f"cores drifted in: {head}"
+    lead = [_flat(_instr(n)).split("## ")[0].split("You are the", 1)[1]
+            for n in CORES]
+    assert lead[0] == lead[1], "cores drifted in the preamble"
+
+
 def test_delegation_is_the_default_not_the_escalation():
     # v0.16.0's whole point. Five consecutive sessions received the
     # v0.15 profile and spawned zero workers: the old Rule 0 read
@@ -172,14 +211,16 @@ def test_injects_the_fable_profile(tmp_path):
 
 def test_non_opus_models_get_the_fable_profile(tmp_path):
     # Fable-first: everything that isn't an opus chair (sonnet chairs
-    # included) gets the primary profile.
-    result = run_hook(
-        INJECT,
-        {"model": "claude-sonnet-5", "session_id": "s-sonnet"},
-        env_extra={"CLAUDE_PLUGIN_ROOT": str(REPO)},
-        tmpdir=tmp_path,
-    )
-    assert "(FABLE profile)" in context_of(result)
+    # included) gets the primary profile — Fable 5.2 above all.
+    for model in ("claude-fable-5-2", "claude-fable-5-2[1m]", "Fable 5.2",
+                  "claude-sonnet-5", "claude-sonnet-5-5"):
+        result = run_hook(
+            INJECT,
+            {"model": model, "session_id": "s-sonnet"},
+            env_extra={"CLAUDE_PLUGIN_ROOT": str(REPO)},
+            tmpdir=tmp_path,
+        )
+        assert "(FABLE profile)" in context_of(result), model
 
 
 def test_opus_chair_gets_the_opus_fallback_profile(tmp_path):
