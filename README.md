@@ -1,12 +1,12 @@
 # Fable Orchestrator
 
-[![CI](https://github.com/Rylaa/fable5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5-orchestrator/actions/workflows/ci.yml)
+[![CI](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/Rylaa/fable5-opus5.5-orchestrator/actions/workflows/ci.yml)
 
-**Run Claude Fable 5 all day — without watching the usage meter.**
+**Run Claude Fable 5.2 all day — without watching the usage meter.**
 
-Fable 5 is the best chair a Claude Code session can have, and the most expensive seat in the house. Let it type every token itself and the session ends rate-limited, waiting out the reset window.
+Fable 5.2 is the best chair a Claude Code session can have, and the most expensive seat in the house. Let it type every token itself and the session ends rate-limited, waiting out the reset window.
 
-This plugin makes the split mechanical. **Fable 5 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `xhigh` for architecture and security — Opus 5.5 never runs at `max`.
+This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `xhigh` for architecture and security — Neither Opus 5.5 nor a Fable escalation runs at `max`.
 
 **No ledger, no interview, no mandatory verification phase.** Earlier versions gated the act of delegating with a requirements file and a clarification loop. Both are gone. What is left is one rule with teeth: delegation is the default, and a hook notices when the chair quietly does the work itself.
 
@@ -14,7 +14,7 @@ This plugin makes the split mechanical. **Fable 5 keeps the chair** and spends t
 
 ```
                         ┌─────────────────────────────────┐
-                        │         FABLE 5 — chair         │
+                        │        FABLE 5.2 — chair        │
                         │    plan · arbitrate · decide    │
                         │  sizes tier + effort per task   │
                         └────────────────┬────────────────┘
@@ -24,7 +24,7 @@ This plugin makes the split mechanical. **Fable 5 keeps the chair** and spends t
            ┌────────────────────────┬────┴───────────────────┬────────────────────────┐
            ▼                        ▼                        ▼                        ▼
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│ SONNET 5 · low–med  │  │ SONNET 5 · med–high │  │ SONNET 5 · med–high │  │OPUS 5.5 · high–xhigh│
+│SONNET 5.5 · low–med │  │SONNET 5.5 · med–high│  │SONNET 5.5 · med–high│  │OPUS 5.5 · high–xhigh│
 │   mechanical bulk   │  │   implementation    │  │   routine judgment  │  │  hard work · direct │
 │   grep·fetch·scan   │  │   code · tests      │  │   briefs · review   │  │  architecture       │
 │   format · read     │  │   debug · refactor  │  │   filtering         │  │  migrations·security│
@@ -33,7 +33,7 @@ This plugin makes the split mechanical. **Fable 5 keeps the chair** and spends t
                                                              │ high stakes            │ opus
                                                           ┌──▼────────────────────────▼──┐
                                                           │   escalation · one way only  │
-                                                          │  OPUS 5.5 → FABLE 5 → stop   │
+                                                          │ OPUS 5.5 → FABLE 5.2 → stop  │
                                                           └──────────────────────────────┘
 ```
 
@@ -43,10 +43,10 @@ Your Fable limit pays for the thinking and almost nothing else:
 ┌─────────────────────────────────────────┬───────────────────┬─────────────────────┐
 │ Work                                    │ Runs on           │ Fable limit pays    │
 ├─────────────────────────────────────────┼───────────────────┼─────────────────────┤
-│ Planning, arbitration, decisions        │ Fable 5 (chair)   │ yes                 │
-│ Implementation, tests, refactors        │ Sonnet 5          │ nothing             │
-│ Source briefs, filtering, code review   │ Sonnet 5          │ nothing             │
-│ Bulk gathering (fetch, grep, scan)      │ Sonnet 5 (low)    │ nothing             │
+│ Planning, arbitration, decisions        │ Fable 5.2 (chair) │ yes                 │
+│ Implementation, tests, refactors        │ Sonnet 5.5        │ nothing             │
+│ Source briefs, filtering, code review   │ Sonnet 5.5        │ nothing             │
+│ Bulk gathering (fetch, grep, scan)      │ Sonnet 5.5 (low)  │ nothing             │
 │ Hard slices: architecture, migrations   │ Opus 5.5 (direct) │ nothing             │
 │ Security / adversarial review           │ Opus 5.5 (xhigh)  │ nothing             │
 │ Escalations (sonnet "uncertain")        │ Opus → Fable      │ mostly nothing      │
@@ -56,9 +56,9 @@ Your Fable limit pays for the thinking and almost nothing else:
 ## Why this trio
 
 - **Fable tokens are the heaviest draw on your limit.** Every token of bulk work kept off the chair extends how long Fable stays in it.
-- **Sonnet 5 carries the volume.** Near-Opus quality on coding and agentic work, with the full effort ladder (`low` → `max`) — and the chair dials that ladder per task.
+- **Sonnet 5.5 carries the volume.** Near-Opus quality on coding and agentic work, with the full effort ladder (`low` → `max`) — and the chair dials that ladder per task.
 - **Opus 5.5 takes the hard slices directly.** Architecture tradeoffs, irreversible migrations, complex multi-system implementation and all security review are assigned straight to Opus, with no failed Sonnet pass required.
-- **Escalation is one-way.** Sonnet returns "uncertain" and it goes to Opus, never back to the chair. If a tier declines a task it is re-run **unchanged** on another tier, never reworded to slip past a classifier. If that tier declines too, the chair stops and tells you.
+- **Escalation is one-way.** Fable 5.2 escalations run at `high` — its gains above `high` are uneven, so `xhigh` only for the hardest long-running work and never `max`. Sonnet returns "uncertain" and it goes to Opus, never back to the chair. If a tier declines a task it is re-run **unchanged** on another tier, never reworded to slip past a classifier. If that tier declines too, the chair stops and tells you.
 
 ## What the plugin does
 
@@ -74,7 +74,7 @@ Three rules keep worker output from undoing the saving:
 
 **Teammates never get the profile.** Named workers are full sessions and fire SessionStart too, but the profile is written for the chair alone: delivered to a worker it says "you are the orchestrator" and invites it to spawn workers of its own, inverting the discipline (measured: 172 of 270 injected sessions were teammates). The injector walks the process tree for `--agent-id` and skips them, while still writing the session marker so the other hooks keep working.
 
-**Two chairs.** Fable is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
+**Two chairs.** Fable (5.2 today) is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
 
 ### 2 · The solo guard — the gate that watches the chair
 
@@ -144,11 +144,13 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 ## Install
 
 ```
-/plugin marketplace add Rylaa/fable5-orchestrator
+/plugin marketplace add Rylaa/fable5-opus5.5-orchestrator
 /plugin install orchestrator@fable-orchestrator
 ```
 
 Restart Claude Code afterwards — **a plugin's hooks are registered when the CLI process starts**, so a session already running (including one you `/clear`) keeps the hook set it booted with and will not see the plugin.
+
+Run the chair at `/effort high`: on Fable 5.2 most of the gain arrives by `high`, and `xhigh`/`max` mostly add tokens.
 
 Requires `python3` on PATH; macOS and Linux only — the hooks shell out to `tmux` for teammate reaping, and Windows is not supported. No configuration needed.
 
@@ -209,6 +211,10 @@ Set these in `~/.claude/settings.json` under `"env"`.
 
 **The session marker.** The injector writes a per-session temp file whose `started` timestamp survives resume/clear/compact. `SessionEnd` removes the session's temp files and sweeps anything older than 96 hours.
 
+## Upgrading from v0.16.x
+
+v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation runs at `high` (`xhigh` only for the hardest long-running work), no longer at `max`.
+
 ## Upgrading from v0.15.x
 
 The ledger is gone, and so are the three gates that enforced it. Nothing breaks: an existing `./.workflow/LEDGER.md` is simply ignored, and the directory is still where scratch material goes. If you liked the ledger, keep writing one — the chair just won't be asked for it.
@@ -222,6 +228,8 @@ python3 -m pytest tests/ -q
 ```
 
 The hooks are plain stdin/stdout JSON filters, so the tests run them end-to-end as subprocesses: the solo gate's threshold, its once-per-session deny, the spawn exemption and the fork non-exemption, every counted edit tool, the naming gate's length threshold and its exemptions, teammate detection against a fake `ps`, the env overrides, malformed sidecars and garbage stdin, the per-prompt reminder and its skip, injection and the profile-switch delta, cache cleanup, and teammate reaping against a fake tmux.
+
+`tests/test_e2e_dry_run.py` is the dry run of a whole session: it runs each command from `hooks/hooks.json` through the shell, exactly as Claude Code would, in a sandbox — start on Fable 5.2, prompts, three solo edits, a spawn, a resume onto Opus, and the end-of-session cleanup.
 
 A second layer pins the *content*: the cores stay under budget, both keep requiring the playbook, the decisions that survived past rewrites are asserted line by line, and the retired gates are asserted **absent** — a core that still promises a ledger or a mandatory verifier is a worse lie than never having had one.
 

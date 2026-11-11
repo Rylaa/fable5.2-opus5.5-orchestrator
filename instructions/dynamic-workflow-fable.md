@@ -53,8 +53,9 @@ sonnet carries the VOLUME: scan, fetch, mechanical edits, spec code,
 tests, briefs, standard review. opus takes predictably HARD work
 DIRECTLY — architecture, irreversible migrations, complex
 multi-system implementation, stubborn debugging — plus ALL security
-review and every sonnet "uncertain". fable (max) is the escalation
-CEILING; it spends the chair's own limit. Escalation is one-way; a
+review and every sonnet "uncertain". fable is the escalation CEILING
+at high — xhigh only for the hardest long-running work, never max;
+it spends the chair's own limit. Escalation is one-way; a
 decline reruns UNCHANGED on another tier, and if that declines too,
 STOP and tell the user — never reword past a classifier.
 

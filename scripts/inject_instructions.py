@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SessionStart hook: inject the Dynamic Workflow instructions.
 
-This plugin is built for a Claude Fable 5 chair, with an Opus
+This plugin is built for a Claude Fable chair (5.2 today), with an Opus
 fallback: when the Fable limit is spent and the user moves the chair to
 Opus, the OPUS profile keeps the same discipline (the fable tier rests,
 verification and the escalation ceiling fall to opus). The chair is
