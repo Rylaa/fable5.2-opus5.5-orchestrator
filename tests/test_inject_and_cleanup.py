@@ -125,6 +125,16 @@ def test_opus_effort_tops_out_at_xhigh():
         assert "max=architecture" not in text, f"{name}: max row came back"
 
 
+def test_every_spawn_names_its_model():
+    # An Agent call with no `model` inherits the chair's — the built-in
+    # Explore agent too — so a forgotten field silently spends the very
+    # limit the plugin protects. Both cores must say so.
+    for name in CORES:
+        text = _flat(_instr(name))
+        assert "Set `model` on EVERY spawn, Explore included" in text, name
+        assert "past high, the next tier at lower effort" in text, name
+
+
 def test_fable_escalation_never_runs_at_max():
     # Fable 5.2 (v0.17.0): most of the gain arrives by high and gains
     # above it are uneven; max is for measuring the model's ceiling. A

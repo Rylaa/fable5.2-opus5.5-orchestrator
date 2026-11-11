@@ -58,7 +58,8 @@ and re-run — never silently accepted.
 Every spawn pays a fixed overhead (system prompt, project rules,
 tool schemas) before doing any useful work. Batch similar mechanical
 steps into ONE worker with a checklist; spawn separately only when
-true parallelism or isolation pays for that overhead. Read-only
+true parallelism or isolation pays for that overhead. Many similar
+items: run them at `low` and re-run only the failures at `high`. Read-only
 workers share the repo concurrently; parallel EDITORS each run with
 `isolation: "worktree"`.
 
