@@ -186,6 +186,9 @@ def launch_model():
     `claude --resume ID --model opus` both land here. `/model` inside a
     session changes neither argv nor settings — no hook can see it.
     """
+    # shortcut: `ps` joins argv with spaces, so a prompt argument that
+    # itself contains "--model X" reads as the flag; upgrade to exact
+    # argv (/proc cmdline, KERN_PROCARGS2) if that is ever seen in use.
     toks = (claude_ancestor_command() or "").split()
     for i, tok in enumerate(toks):
         if tok == "--model" and i + 1 < len(toks):

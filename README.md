@@ -4,11 +4,7 @@
 
 **Run Claude Fable 5.2 all day — without watching the usage meter.**
 
-Fable 5.2 is the best chair a Claude Code session can have, and the most expensive seat in the house. Let it type every token itself and the session ends rate-limited, waiting out the reset window.
-
-This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends tokens on planning, arbitration and final decisions. Everything else goes to named workers: the volume — implementation, research, briefs, review, bulk reading — to **Sonnet 5.5**, and the predictably hard slices — architecture, irreversible migrations, security review — straight to **Opus 5.5**, which doubles as the escalation lane. The chair sizes each worker's reasoning effort to the job, `low` for mechanical sweeps, `high` for architecture and security — no tier ever runs above `high`.
-
-**No ledger, no interview, no mandatory verification phase.** Earlier versions gated the act of delegating with a requirements file and a clarification loop. Both are gone. What is left is one rule with teeth: delegation is the default, and a hook notices when the chair quietly does the work itself.
+Fable 5.2 is the best chair a Claude Code session can have, and the most expensive one. This plugin keeps it on planning and decisions and sends the work to named workers: the volume to **Sonnet 5.5**, the hard slices (architecture, irreversible migrations, security review) straight to **Opus 5.5**. No tier ever runs above `high` effort.
 
 ## The division of labor
 
@@ -37,113 +33,30 @@ This plugin makes the split mechanical. **Fable 5.2 keeps the chair** and spends
                                                           └──────────────────────────────┘
 ```
 
-Your Fable limit pays for the thinking and almost nothing else:
-
-```
-┌─────────────────────────────────────────┬───────────────────┬─────────────────────┐
-│ Work                                    │ Runs on           │ Fable limit pays    │
-├─────────────────────────────────────────┼───────────────────┼─────────────────────┤
-│ Planning, arbitration, decisions        │ Fable 5.2 (chair) │ yes                 │
-│ Implementation, tests, refactors        │ Sonnet 5.5        │ nothing             │
-│ Source briefs, filtering, code review   │ Sonnet 5.5        │ nothing             │
-│ Bulk gathering (fetch, grep, scan)      │ Sonnet 5.5 (low)  │ nothing             │
-│ Hard slices: architecture, migrations   │ Opus 5.5 (direct) │ nothing             │
-│ Security / adversarial review           │ Opus 5.5 (high)   │ nothing             │
-│ Escalations (sonnet "uncertain")        │ Opus → Fable      │ mostly nothing      │
-└─────────────────────────────────────────┴───────────────────┴─────────────────────┘
-```
-
-## Why this trio
-
-- **Fable tokens are the heaviest draw on your limit.** Every token of bulk work kept off the chair extends how long Fable stays in it.
-- **Sonnet 5.5 carries the volume.** Near-Opus quality on coding and agentic work, on an effort ladder from `low` to `high` — and the chair dials that ladder per task.
-- **Opus 5.5 takes the hard slices directly.** Architecture tradeoffs, irreversible migrations, complex multi-system implementation and all security review are assigned straight to Opus, with no failed Sonnet pass required.
-- **Escalation is one-way.** Every tier, Fable escalations included, tops out at `high`: no `xhigh`, no `max`. When `high` is not enough, the work moves up a tier instead. Sonnet returns "uncertain" and it goes to Opus, never back to the chair. If a tier declines a task it is re-run **unchanged** on another tier, never reworded to slip past a classifier. If that tier declines too, the chair stops and tells you.
+- **Escalation is one-way.** When `high` is not enough, the work moves up a tier, not up in effort. Sonnet's "uncertain" goes to Opus, never back to the chair.
+- **A declined task is re-run unchanged** on another tier, never reworded. If that tier declines too, the chair stops and tells you.
 
 ## What the plugin does
 
-### 1 · The Fable profile — a slim core plus a playbook
+**1 · The chair profile.** Every session starts with a ~3.7k-char core: delegate by default, hand off through `./.workflow/scratch/`, name the workers, set `model` and effort per spawn. The detail is in the `orchestrator:playbook` skill, loaded before the first delegation. Worker reports are capped at 40 lines; longer material goes to disk.
 
-Every chair session starts with a ~3.3k-char core profile: the default (delegate), the disk hand-off, spawn discipline, routing and effort. The detail lives in the `orchestrator:playbook` skill, which the core requires **before the first delegation** — the research pipeline, the worker report contract, spawn economics, the fork cap, teammate lifecycle. Sessions that never delegate never pay for it.
+**2 · The solo guard.** The chair's own `Edit` / `Write` / `MultiEdit` / `NotebookEdit` calls are counted. The 3rd one in a session that has spawned no worker is denied once, then the guard stays quiet. One spawned worker disarms it. A fork does not count as a worker.
 
-Three rules keep worker output from undoing the saving:
+**3 · The naming gate.** The first unnamed spawn with a 1500+ char prompt is denied once. Named workers run in tmux panes you can watch; unnamed ones are invisible until they return.
 
-- Reports are capped at 40 lines. Verbatim over ten lines goes to `./.workflow/scratch/` and the report carries the path. A violating report is re-run, not accepted.
-- Research is one worker per source: fetch verbatim to disk first, then brief from that copy. One synthesizer reads across the briefs.
-- Similar mechanical work is batched. Five greps are one agent with a checklist, not five agents.
+**4 · The per-prompt reminder.** One line rides every prompt: *You are the CHAIR. Delegate by default.*
 
-**Teammates never get the profile.** Named workers are full sessions and fire SessionStart too, but the profile is written for the chair alone: delivered to a worker it says "you are the orchestrator" and invites it to spawn workers of its own, inverting the discipline (measured: 172 of 270 injected sessions were teammates). The injector walks the process tree for `--agent-id` and skips them, while still writing the session marker so the other hooks keep working.
+Workers (teammates) get none of this — the rules are for the chair. When a session ends, its teammate panes are killed.
 
-**Two chairs.** Fable (5.2 today) is primary; when its limit runs dry and you move the chair to Opus, the OPUS profile keeps the same discipline with the fable tier resting. A mid-session switch on a `resume` gets a short delta note instead of the whole core.
+## Two chairs
 
-To move the chair, exit and relaunch: `claude --continue --model opus` (or `--resume <id>`). Do not use `/model` for this: it changes the model for that session only, and no hook can see it, so the session keeps the Fable profile. The relaunch fires SessionStart with `--model opus` on the command line, and the hook reads it from there. Opus cannot read Fable 5.2's reasoning, and the prompt cache belongs to the model that wrote it, so run `/compact` on the new chair if the history is long.
-
-How the hook picks the profile, first match wins: `FABLE_ORCH_PROFILE`, the `model` in the SessionStart payload (current Claude Code sends none), the `--model` flag the session was launched with, the `model` in `settings.json`, then the last model seen in this session.
-
-### 2 · The solo guard — the gate that watches the chair
-
-This is the part with teeth, added in v0.16.0.
-
-Every earlier version gated **delegation**: spawn prompts over a length threshold, the third tracker task, the close with open ledger items. A chair that never delegated never met a gate at all — measured in the wild, five consecutive sessions received the profile in full and spawned zero workers while hand-editing dozens of files.
-
-So the gate now watches the other side:
+Fable is primary. When its limit runs out, move the chair to Opus — the Opus profile keeps the same rules with the fable tier resting:
 
 ```
-┌──────────────────────────────┬───────────────────────────────────────────────┐
-│ Tool                         │ What the hook does                            │
-├──────────────────────────────┼───────────────────────────────────────────────┤
-│ Agent · Task                 │ records a spawn, always allows                │
-│ Edit · Write · MultiEdit ·   │ counts; the 3rd in a session that has spawned │
-│ NotebookEdit                 │ nothing draws ONE deny, then stays quiet      │
-└──────────────────────────────┴───────────────────────────────────────────────┘
+claude --continue --model opus
 ```
 
-It is a nudge, not a wall. Two edits pass free, the deny fires **once per session**, and the message tells the chair how to proceed if it really was a single-sitting fix. One spawned worker disarms it for the rest of the session — a chair that is orchestrating can make its own small edits.
-
-**Exempt:** teammates (a worker's job *is* to edit files), and any session that has already spawned a worker. A **fork** does not count as delegating: it clones the chair's own context at the chair's own model, so forking a plan's phases is disguised solo work.
-
-**Not covered on purpose:** `Bash` heredocs and `sed -i`. Gating Bash would mean parsing shell to tell `cat > file` from `cat file`, and a guard that misreads a read as a write is worse than one with a known hole.
-
-### 3 · The naming gate — an unnamed worker is an invisible worker
-
-Same hook, second question. A **named** teammate runs in a tmux pane you watch live and its lifecycle reaches the chat; an **unnamed** subagent is a silent spinner until it returns. Rule 2 has always said to name them, and nothing checked — so the first spawn of a session whose prompt is **1500+ chars** and carries no `name` is denied once, with the label format in the message.
-
-Short lookups are exempt by that same length: a grep or one fetch never needs a pane. Forks are exempt too — a fork is the chair's own context and has no pane of its own.
-
-The denied spawn still counts as delegating, so the edit gate stays disarmed: the chair was told to re-send *with a name*, and its retry is the same worker, not a second one.
-
-### 4 · The per-prompt reminder
-
-The core profile arrives once, at SessionStart, and then competes with everything that comes after it. A ~35-token line rides every prompt instead:
-
-```
-[orchestrator] You are the CHAIR. Delegate by default: name the workers,
-spec them, spawn independent ones in one message. Solo only for a
-single-sitting fix the user asked for directly.
-```
-
-It restates the default and nothing else — routing, effort and the report contract stay in the core and the playbook, where they are read once. Teammates are skipped.
-
-## Watching the team live
-
-Teammates are real `claude` processes in tmux panes — you can watch every agent think, call tools, and type in real time. Claude Code opens the panes inside **your own default tmux server**: if you launched `claude` from inside tmux, the team appears as extra panes right in your window (`prefix q` jumps between panes, `prefix z` zooms one to full screen, `prefix w` shows a session/window tree).
-
-Launch `claude` **outside** tmux and the panes go to a separate detached session instead, which you have to `tmux attach` to see. If you want the team in the window you are already looking at, start tmux first:
-
-```
-tmux new-session -s claude
-claude
-```
-
-```
-# who is on the field, by name
-ps -axo pid=,command= | grep -- --agent-id
-
-# every pane, mapped: session, pane id, pid, what it runs
-tmux list-panes -a -F '#{session_name} #{pane_id} #{pane_pid} #{pane_current_command}'
-```
-
-Watch, don't type: a teammate's pane is its working terminal, and stray input interferes with it — talk to agents through the lead session instead. The reaper keeps this view honest: dismissed and idle teammates disappear instead of stacking up.
+Do not use `/model` for this: it is invisible to hooks, so the session keeps the Fable profile. Run `/compact` on the new chair if the history is long.
 
 ## Install
 
@@ -152,18 +65,19 @@ Watch, don't type: a teammate's pane is its working terminal, and stray input in
 /plugin install orchestrator@fable-orchestrator
 ```
 
-Restart Claude Code afterwards — **a plugin's hooks are registered when the CLI process starts**, so a session already running (including one you `/clear`) keeps the hook set it booted with and will not see the plugin.
+Restart Claude Code afterwards — hooks load when the CLI starts.
 
-Run the chair at `/effort medium` and raise it to `high` for the hardest planning — never above, like the workers. On Fable 5.2 most of the gain arrives by `high`.
+- Run the chair at `/effort medium`, `high` for the hardest planning.
+- Recommended: set `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` under `"env"`, so a spawn that forgets `model` does not run on Fable.
+- Requires `python3` 3.10+ and macOS or Linux (the hooks use `ps` and `tmux`).
 
-Optional safety net: set `CLAUDE_CODE_SUBAGENT_MODEL` to `sonnet` under `"env"`. A spawn with no `model` inherits the chair's model, so without it every forgotten `model` runs on Fable. The built-in Explore agent also runs on the session's model; the profile tells the chair to pass `model` to it too.
+To watch the team, start `claude` inside tmux; the workers appear as panes in your window.
 
-Requires `python3` 3.10+ on PATH (CI runs 3.10 and 3.13); macOS and Linux only — the hooks shell out to `tmux` for teammate reaping, and Windows is not supported. No configuration needed.
+<details>
+<summary>Manual install (without the plugin system)</summary>
 
-### Manual install (without the plugin system)
-
-1. Copy `scripts/inject_instructions.py`, `scripts/solo_guard.py`, `scripts/remind_chair.py`, `scripts/cleanup_session_cache.py` and `scripts/_shared.py` (every hook imports it) to `~/.claude/hooks/`.
-2. Merge this into `~/.claude/settings.json`:
+1. Copy `scripts/*.py` (except `stats.py`) to `~/.claude/hooks/`.
+2. Merge into `~/.claude/settings.json`:
 
 ```json
 {
@@ -187,53 +101,42 @@ Requires `python3` 3.10+ on PATH (CI runs 3.10 and 3.13); macOS and Linux only �
 }
 ```
 
-3. Append `instructions/dynamic-workflow-fable.md` to `~/.claude/CLAUDE.md`, and copy the playbook to `~/.claude/skills/playbook/SKILL.md`. Note the name mismatch: the core asks for `orchestrator:playbook`, which only resolves when the plugin is installed. Copied by hand it is plain `playbook`.
+3. Append `instructions/dynamic-workflow-fable.md` to `~/.claude/CLAUDE.md` and copy the playbook to `~/.claude/skills/playbook/SKILL.md`.
 
-> Don't run the plugin **and** the manual install side by side — you'd get every hook twice.
+Don't run the plugin and the manual install together — every hook would fire twice.
+
+</details>
 
 ## Configuration
 
-Set these in `~/.claude/settings.json` under `"env"`.
+Optional, in `~/.claude/settings.json` under `"env"`:
 
 ```
-┌───────────────────────────────┬────────────────────┬────────────────────────────────────────────┐
-│ Env var                       │ Default            │ Meaning                                    │
-├───────────────────────────────┼────────────────────┼────────────────────────────────────────────┤
-│ FABLE_ORCH_SOLO_EDITS         │ 3                  │ deny at the Nth chair edit; 0 disables     │
-│ FABLE_ORCH_NAME_CHARS         │ 1500               │ spawn prompt size that needs a name; 0 off │
-│ FABLE_ORCH_SOLO_GUARD         │ (on)               │ 0 disables the solo gate entirely          │
-│ FABLE_ORCH_REMIND             │ (on)               │ 0 disables the per-prompt line             │
-│ FABLE_ORCH_PROFILE            │ auto               │ pin the chair profile: auto | fable | opus │
-│ FABLE_ORCH_TEAMMATE_INJECT    │ (off)              │ 1 injects the profile into teammates too   │
-│ FABLE_ORCH_METRICS            │ (on)               │ 0 disables local metrics logging           │
-│ FABLE_ORCH_SWARM_CLEANUP      │ (on)               │ 0 disables all teammate reaping            │
-│ FABLE_ORCH_SWARM_MAX_IDLE_H   │ 48                 │ sweep swarms idle ≥ N hours; 0 disables    │
-│ FABLE_ORCH_TEAMMATE_IDLE_H    │ 1                  │ kill teammate panes idle ≥ N hours; 0 off  │
-│ FABLE_ORCH_TEAMMATE_IDLE_RATE │ 0.01               │ cpu-sec/sec under which a pane is idle     │
-└───────────────────────────────┴────────────────────┴────────────────────────────────────────────┘
+┌───────────────────────────────┬─────────┬────────────────────────────────────────────┐
+│ Env var                       │ Default │ Meaning                                    │
+├───────────────────────────────┼─────────┼────────────────────────────────────────────┤
+│ FABLE_ORCH_SOLO_EDITS         │ 3       │ deny at the Nth chair edit; 0 disables     │
+│ FABLE_ORCH_NAME_CHARS         │ 1500    │ spawn prompt size that needs a name; 0 off │
+│ FABLE_ORCH_SOLO_GUARD         │ (on)    │ 0 disables the solo gate entirely          │
+│ FABLE_ORCH_REMIND             │ (on)    │ 0 disables the per-prompt line             │
+│ FABLE_ORCH_PROFILE            │ auto    │ pin the chair profile: auto | fable | opus │
+│ FABLE_ORCH_TEAMMATE_INJECT    │ (off)   │ 1 injects the profile into teammates too   │
+│ FABLE_ORCH_METRICS            │ (on)    │ 0 disables local metrics logging           │
+│ FABLE_ORCH_SWARM_CLEANUP      │ (on)    │ 0 disables all teammate reaping            │
+│ FABLE_ORCH_SWARM_MAX_IDLE_H   │ 48      │ sweep swarms idle ≥ N hours; 0 disables    │
+└───────────────────────────────┴─────────┴────────────────────────────────────────────┘
 ```
 
-**Metrics.** Every hook appends one event line to `~/.claude/fable-orch/metrics.jsonl` — events only, never prompt content: injections per profile, mid-session switches, solo denies and suppressions, reaps. `python3 scripts/stats.py` prints the summary. Disable with `FABLE_ORCH_METRICS=0`.
+The profile is picked from, first match wins: `FABLE_ORCH_PROFILE`, the `--model` flag the session was launched with, `model` in `settings.json`. Any model that is not Opus gets the Fable profile.
 
-**The session marker.** The injector writes a per-session temp file whose `started` timestamp survives resume/clear/compact. `SessionEnd` removes the session's temp files and sweeps anything older than 96 hours.
+Metrics (events only, never prompt content) go to `~/.claude/fable-orch/metrics.jsonl`; `python3 scripts/stats.py` prints a summary.
 
-## Upgrading from v0.17.0 / v0.17.1
+## Upgrading to v0.17.2
 
-v0.17.2 fixes the chair detection. Claude Code no longer sends the model in the SessionStart payload, so a session launched with `claude --model fable` while `settings.json` said `opus` got the Opus profile, which bans the fable tier. The hook now reads the `--model` flag of the claude process. The v0.17.1 advice to switch chairs with `/model` + `/compact` was wrong; relaunch with `--model` instead.
-
-v0.17.2 also caps effort at `high` for every tier. `xhigh` is gone: architecture, migrations, security and escalations run at `high`, and work that needs more moves up a tier.
-
-## Upgrading from v0.16.x
-
-v0.17.0 targets Fable 5.2. The profiles name tiers, not versions, so nothing to reconfigure. One rule changed: a fable escalation no longer runs at `max` (v0.17.2 then capped every tier at `high`). Python 3.9 is no longer tested; the floor is 3.10.
-
-v0.17.1 adds two rules to both profiles. The chair must set `model` on every spawn, because an unset one runs on the chair's model. Before moving work up a tier, it first gives the worker a test or build to run, or one more effort level.
-
-## Upgrading from v0.15.x
-
-The ledger is gone, and so are the three gates that enforced it. Nothing breaks: an existing `./.workflow/LEDGER.md` is simply ignored, and the directory is still where scratch material goes. If you liked the ledger, keep writing one — the chair just won't be asked for it.
-
-What is new that you will notice: a line on every prompt, and a one-time deny if the chair edits three files without delegating. Set `FABLE_ORCH_SOLO_EDITS=0` and `FABLE_ORCH_REMIND=0` to run the profile with no enforcement at all.
+- Effort is capped at `high` for every tier; `xhigh` and `max` are gone.
+- The chair is detected from the `--model` launch flag. Move the chair by relaunching, not with `/model`.
+- Every spawn must set `model`.
+- Python 3.10+ is required.
 
 ## Tests
 
@@ -241,23 +144,13 @@ What is new that you will notice: a line on every prompt, and a one-time deny if
 python3 -m pytest tests/ -q
 ```
 
-The hooks are plain stdin/stdout JSON filters, so the tests run them end-to-end as subprocesses: the solo gate's threshold, its once-per-session deny, the spawn exemption and the fork non-exemption, every counted edit tool, the naming gate's length threshold and its exemptions, teammate detection against a fake `ps`, the env overrides, malformed sidecars and garbage stdin, the per-prompt reminder and its skip, injection and the profile-switch delta, cache cleanup, and teammate reaping against a fake tmux.
+The hooks run as real subprocesses. `tests/test_e2e_dry_run.py` replays a whole session through `hooks/hooks.json`, as Claude Code runs it.
 
-`tests/test_e2e_dry_run.py` is the dry run of a whole session: it runs each command from `hooks/hooks.json` through the shell, exactly as Claude Code would, in a sandbox — start on Fable 5.2, prompts, three solo edits, a spawn, a resume onto Opus, and the end-of-session cleanup. Run it alone with `python3 -m pytest tests/test_e2e_dry_run.py -q`.
+## Limitations
 
-A second layer pins the *content*: the cores stay under budget, both keep requiring the playbook, the decisions that survived past rewrites are asserted line by line, the two cores may differ only in their routing section, and the retired gates are asserted **absent** — a core that still promises a ledger or a mandatory verifier is a worse lie than never having had one.
-
-## Honest limitations
-
-- **The solo gate counts edits, not work.** A chair that does everything through `Bash` heredocs never trips it. The per-prompt reminder is the only thing covering that path.
-- **The naming gate measures the brief, not the job.** A short prompt pointing at a long spec passes unnamed, and a verbose brief for a two-minute lookup gets asked for a name it does not need.
-- **It fires once.** By design — but a determined chair can absorb the nudge and carry on solo, and nothing stops it.
-- **Hooks check shape, not fidelity.** A worker spawned to satisfy the gate, then ignored, passes.
-- **Two chairs only.** Fable (primary) and Opus (fallback). Any other model gets the Fable profile.
-- **`/model` is invisible to the hooks.** A chair switched with `/model` keeps the profile it started with. Relaunch with `--model` instead, or pin `FABLE_ORCH_PROFILE`.
-- **Enforcement is only as strong as the host's hook pipeline.** On one experimental spawn backend an async `Agent` launch proceeded despite a deny. Verify once on your setup.
-- **Pane idleness is a heuristic.** A teammate blocked for hours in one quiet external wait can be reaped mid-wait. Raise `FABLE_ORCH_TEAMMATE_IDLE_H` or disable it for such workloads.
-- **A plugin's hooks load at CLI start.** Install it and keep working in the same window and nothing happens — not a bug, but it looks exactly like one.
+- **The solo guard counts edits, not work.** A chair that writes files through `Bash` never trips it.
+- **Each gate fires once per session.** A chair can ignore the nudge and carry on.
+- **`/model` is invisible to the hooks.** Relaunch with `--model`, or pin `FABLE_ORCH_PROFILE`.
 
 ## License
 
