@@ -84,10 +84,9 @@ def fake_ps_env(tmp_path, argv_line):
             "CLAUDE_PLUGIN_ROOT": str(REPO)}
 
 
-def run_hook(script, payload=None, raw=None, env_extra=None, tmpdir=None):
-    """Run a hook script as a subprocess, exactly as Claude Code would.
+def hook_env(env_extra=None, tmpdir=None):
+    """The sandboxed environment every hook subprocess runs in.
 
-    Returns the parsed JSON it printed, or None for empty output.
     `tmpdir` redirects tempfile.gettempdir() inside the subprocess so
     session-cache reads/writes stay inside the test sandbox.
     """
@@ -112,6 +111,15 @@ def run_hook(script, payload=None, raw=None, env_extra=None, tmpdir=None):
     # tmux at a sandbox would sweep the developer's REAL tmux servers.
     assert env.get("FABLE_ORCH_SWARM_CLEANUP") != "1" or "TMUX_TMPDIR" in env, \
         "FABLE_ORCH_SWARM_CLEANUP=1 requires a sandboxed TMUX_TMPDIR"
+    return env
+
+
+def run_hook(script, payload=None, raw=None, env_extra=None, tmpdir=None):
+    """Run a hook script as a subprocess, exactly as Claude Code would.
+
+    Returns the parsed JSON it printed, or None for empty output.
+    """
+    env = hook_env(env_extra, tmpdir)
     stdin = raw if raw is not None else json.dumps(payload or {})
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script)],
