@@ -15,20 +15,20 @@ Detection, in priority order (first hit wins):
     1. FABLE_ORCH_PROFILE = fable | opus   — explicit pin, overrides all
        (auto / unset falls through to detection)
     2. the SessionStart payload's `model`  — authoritative for THIS
-       session start, but the harness omits it on some resume/compact
-       fires
-    3. the user's configured default model in Claude Code settings.json
-       — what `/model` persists, so it still tracks the chair when (2)
-       is absent (the common "I switched to Opus but the payload was
-       empty" case)
-    4. the last model this session's marker saw — sticky fallback so a
+       session start; Claude Code 2.1.322 no longer sends it at all
+    3. the `--model` the claude process was launched with — read from
+       the same ancestor walk as teammate detection; authoritative for
+       THIS session (`claude --model fable`, `claude --continue
+       --model opus`)
+    4. the user's configured default model in Claude Code settings.json
+       — what a plain `claude` starts on
+    5. the last model this session's marker saw — sticky fallback so a
        null-payload resume never regresses an opus session to fable
-    5. fable — the safe default
+    6. fable — the safe default
 
-A mid-session /model switch still only takes visible effect at the next
-session start (startup/resume/clear), because SessionStart is the sole
-injection point — but (3) makes that next start reliable instead of
-racy.
+`/model` inside a session is invisible to every hook: it changes
+neither argv nor settings.json ("for this session only"). To move the
+chair, relaunch: `claude --continue --model opus`.
 
 PROFILE-SWITCH DELTA. When a session that already received a core
 profile re-fires with the OTHER profile selected (the Fable limit ran
@@ -76,7 +76,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _shared import is_teammate_session, metric, tmp_json  # noqa: E402
+from _shared import (is_teammate_session, launch_model, metric,  # noqa: E402
+                     tmp_json)
 
 
 def session_model_cache_path(session_id):
@@ -134,14 +135,17 @@ def _read_marker(cache):
     return None, None, None
 
 
-def resolve_profile(payload_model, configured_model, marker_model):
+def resolve_profile(payload_model, launched_model, configured_model,
+                    marker_model):
     """Return (profile, source) — 'opus'|'fable' and which signal decided.
-    Priority: env override > payload model > settings default > marker."""
+    Priority: env override > payload > launch flag > settings > marker."""
     override = (os.environ.get("FABLE_ORCH_PROFILE") or "").strip().lower()
     if override in ("fable", "opus"):
         return override, "override"
     if str(payload_model or "").strip():
         return ("opus" if _is_opus(payload_model) else "fable"), "payload"
+    if str(launched_model or "").strip():
+        return ("opus" if _is_opus(launched_model) else "fable"), "launch"
     if str(configured_model or "").strip():
         return ("opus" if _is_opus(configured_model) else "fable"), "settings"
     if str(marker_model or "").strip():
@@ -163,7 +167,8 @@ def main():
     cache = session_model_cache_path(session_id)
     prev_started, prev_model, prev_profile = _read_marker(cache)
 
-    profile, source = resolve_profile(model, _configured_model(), prev_model)
+    profile, source = resolve_profile(model, launch_model(),
+                                      _configured_model(), prev_model)
 
     # Profile-switch delta: this session already carries a core profile
     # and the chair has since moved to the other tier. Re-sending ~3.7k
@@ -178,14 +183,15 @@ def main():
     # Any unrecognised future source takes the same safe side: an
     # unproven source gets the full core. Wrong-delta costs a ruleless
     # chair; wrong-full-core costs ~3.7k chars.
-    # ALSO GATED TO AN AUTHORITATIVE SIGNAL. Only the payload model and
-    # the env pin describe THIS session's chair; the settings default is
+    # ALSO GATED TO AN AUTHORITATIVE SIGNAL. Only the payload model, the
+    # launch flag and the env pin describe THIS session's chair; the settings default is
     # global (another session's `/model` moves it) and the marker model
     # is sticky history. A "switch" derived from either would tell a
     # chair that never moved that its limit is spent and ban the tier it
     # is sitting on — then ping-pong back on the next real payload.
     switched = (bool(prev_profile) and prev_profile != profile
-                and fire == "resume" and source in ("payload", "override"))
+                and fire == "resume"
+                and source in ("payload", "launch", "override"))
     filename = (f"profile-switch-to-{profile}.md" if switched
                 else f"dynamic-workflow-{profile}.md")
 

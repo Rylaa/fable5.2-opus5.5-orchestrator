@@ -48,13 +48,13 @@ ask (ultracode).
 Tier NAMES only — sonnet/opus, never dated IDs, no haiku; the fable
 tier is RESTING, its roles fall to opus.
 Effort per spawn: low=mechanical, medium=routine spec work,
-high=multi-file impl/debug/review, xhigh=hardest agentic work,
-architecture/migrations/security/escalations; unsure → round UP.
-opus never runs above xhigh — no max on opus.
+high=everything harder — multi-file impl/debug/review, architecture,
+migrations, security, escalations; unsure → round UP.
+high is the CEILING for every tier: never above high, never max.
 Set `model` on EVERY spawn, Explore included: an unset model
 inherits the chair's and spends its limit. Before moving work up a
 tier, give the worker a check it can run (test, build) or raise
-effort one level; past high, the next tier at lower effort beats
+effort one level; at high, the next step is the next tier, never
 more effort.
 sonnet carries the VOLUME: scan, fetch, mechanical edits, spec code,
 tests, briefs, standard review. opus takes predictably HARD work
